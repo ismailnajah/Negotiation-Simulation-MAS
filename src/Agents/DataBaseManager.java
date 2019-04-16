@@ -94,8 +94,7 @@ public class DataBaseManager extends Agent {
                 if (password.equals(resultSet.getString(Database.password))) {
                     String l_name = resultSet.getString(Database.l_name);
                     String f_name = resultSet.getString(Database.f_name);
-                    boolean risk = resultSet.getBoolean(Database.risk);
-                    farmer = new Farmer(farmer_num, f_name,l_name, password,risk);
+                    farmer = new Farmer(farmer_num, f_name,l_name, password);
                     farmer.setPlots(getFarmerPlots(farmer));
                 }
             }
@@ -132,9 +131,8 @@ public class DataBaseManager extends Agent {
         String f_name = farmer.getF_name();
         String farmer_num = farmer.getFarmer_num();
         String password = farmer.getPassword();
-        boolean risk = farmer.isRisk();
 
-        String query = "insert into "+ Database.table_farmers+" values ('"+farmer_num+"','"+f_name+"','"+l_name+"','"+password+"',"+risk+")";
+        String query = "insert into "+ Database.table_farmers+" values ('"+farmer_num+"','"+f_name+"','"+l_name+"','"+password+")";
 
         try {
             connect.prepareStatement(query).executeUpdate();

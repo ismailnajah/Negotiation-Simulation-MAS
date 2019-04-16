@@ -30,7 +30,6 @@ public class RegisterGui {
 
     PasswordField2 password = new PasswordField2();
     PasswordField2 confirmpassword = new PasswordField2();
-    CheckBox risk = new CheckBox("je prent le risque");
 
     Button create = new Button("S'enregistrer") ;
     Stage window = new Stage();
@@ -47,7 +46,6 @@ public class RegisterGui {
         layout.setConstraints(numAgriLabel,1,3);
         layout.setConstraints(passwordLabel,1,4);
         layout.setConstraints(confirmPasswordLabel,1,5);
-        layout.setConstraints(risk,2,6);
         layout.setConstraints(create,2,7,2,1);
 
         layout.setConstraints(lname,2,1);
@@ -60,12 +58,12 @@ public class RegisterGui {
 
         layout.getChildren().addAll(nameLabel, lname,prenameLabel, fname,numAgriLabel,
                 farmer_num,passwordLabel,password,
-                confirmPasswordLabel,confirmpassword,risk,create);
+                confirmPasswordLabel,confirmpassword,create);
 
 
         create.setOnAction(e->{
             if(checkFields()){
-               farmer = new Farmer(farmer_num.getText().toLowerCase(), fname.getText(), lname.getText(),password.getText(),risk.isSelected());
+               farmer = new Farmer(farmer_num.getText().toLowerCase(), fname.getText(), lname.getText(),password.getText());
                 GuiEvent guiEvent = new GuiEvent(this,2);
                 guiEvent.addParameter(farmer);
                 agent.onGuiEvent(guiEvent);

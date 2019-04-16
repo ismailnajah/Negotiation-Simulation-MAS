@@ -13,15 +13,13 @@ public class Farmer implements Serializable {
     private String l_name;
     private String farmer_num;
     private String password;
-    private boolean risk;
     private Vector<Plot> plots = new Vector<>();
 
-    public Farmer(String farmer_num, String f_name, String l_name, String password, boolean risk) {
+    public Farmer(String farmer_num, String f_name, String l_name, String password) {
         this.f_name = f_name;
         this.l_name = l_name;
         this.farmer_num = farmer_num;
         this.password = password;
-        this.risk = risk;
     }
 
     public String getF_name() {
@@ -56,14 +54,6 @@ public class Farmer implements Serializable {
         this.password = password;
     }
 
-    public boolean isRisk() {
-        return risk;
-    }
-
-    public void setRisk(boolean risk) {
-        this.risk = risk;
-    }
-
     public Vector<Plot> getPlots() {
         return plots;
     }
@@ -78,8 +68,7 @@ public class Farmer implements Serializable {
                 "f_name='" + f_name + '\'' +
                 ", l_name='" + l_name + '\'' +
                 ", farmer_num='" + farmer_num + '\'' +
-                ", password='" + password + '\'' +
-                ", risk=" + risk +
+                ", password='" + password + '\''+
                 '}';
     }
 }
