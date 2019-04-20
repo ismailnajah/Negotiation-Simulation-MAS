@@ -4,4 +4,5 @@ public class Onthologies {
     public static final String registration = "registration";
     public static final String authentication = "authentication";
     public static final String plot_modification = "plot-modification";
+    public static final String plot_addition = "plot-addition";
 }

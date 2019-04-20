@@ -31,7 +31,7 @@ public class RegisterGui {
     PasswordField2 password = new PasswordField2();
     PasswordField2 confirmpassword = new PasswordField2();
 
-    Button create = new Button("S'enregistrer") ;
+    Button create = new Button("S'enregistrer");
     Stage window = new Stage();
 
 

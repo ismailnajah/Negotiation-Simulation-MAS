@@ -2,13 +2,14 @@ package Gui;
 
 import Agents.FarmerAgent;
 import Agents.LoginAgent;
-import CustomGui.LeaveButton;
+import CustomGui.RButton;
 import CustomGui.NumberField;
 import CustomGui.textField;
 import com.example.android.distributeurdeau.models.Farmer;
 import com.example.android.distributeurdeau.models.Plot;
 import jade.gui.GuiEvent;
 import jade.wrapper.StaleProxyException;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -34,7 +35,7 @@ public class HomeGui extends Stage {
     Farmer farmer;
     FarmerAgent farmerAgent;
     ChoiceBox<String> plotsCB = new ChoiceBox<>();
-    Button addPlotB = new Button();
+    RButton addPlotB = new RButton("add.png",20,20,2);
 
     Label plotsLabel = new Label("Choisi une parcelle");
     Label typeLabel = new Label("Type de culture");
@@ -61,7 +62,7 @@ public class HomeGui extends Stage {
     Button sendB = new Button("Envoyer");
     Button saveB = new Button("Enregistrer");
 
-    LeaveButton logout = new LeaveButton();
+    RButton logout = new RButton("logout.png",30,30,5);
     Label farmerFname = new Label();
     Label farmerLname = new Label();
 
@@ -89,14 +90,9 @@ public class HomeGui extends Stage {
 
         //choisi une parcelle
         header.setPadding(new Insets(20));
+        header.setSpacing(20);
         header.getChildren().addAll(plotsLabel,plotsCB,addPlotB);
         plotsLabel.setPadding(new Insets(0,20,0,0));
-
-        //add plot
-        Image addIcon = new Image(getClass().getResourceAsStream("resources\\add-icon.png"),20,20,false,false);
-        addPlotB.setGraphic(new ImageView(addIcon));
-        addPlotB.setBackground(null);
-        addPlotB.setBorder(null);
 
         plotsCB.setTooltip(new Tooltip("Secelctionner une parcelle"));
         populatePlotCB();
@@ -172,6 +168,12 @@ public class HomeGui extends Stage {
 
         saveB.setOnAction(event -> SavePlotChanges(event));
 
+        //add Plot
+        addPlotB.setOnAction(event->{
+            new AddPlotGui(HomeGui.this,farmerAgent);
+
+        });
+
         //real header
         HBox logoutBox = new HBox();
         logoutBox.setAlignment(Pos.CENTER);
@@ -223,7 +225,7 @@ public class HomeGui extends Stage {
         this.rendement.setText("2000");
     }
 
-    private void populatePlotCB(){
+   public void populatePlotCB(){
         Vector<Plot> plots = farmer.getPlots();
         String[] plotsNames;
         int size = plots.size();
@@ -234,6 +236,7 @@ public class HomeGui extends Stage {
         }else{
             plotsNames = new String[]{"Vide"};
         }
+        plotsCB.getItems().clear();
         plotsCB.getItems().addAll(plotsNames);
         plotsCB.setValue(plotsNames[0]);
         populateFields();

@@ -7,14 +7,14 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.shape.Circle;
 
-public class LeaveButton extends Button {
+public class RButton extends Button {
 
-    public LeaveButton() {
+    public RButton(String path,int width,int hight,int padding) {
         super();
-        Image image = new Image(getClass().getResourceAsStream("logout.png"), 30, 30, true, true);
+        Image image = new Image(getClass().getResourceAsStream(path), width, hight, true, true);
         this.setGraphic(new ImageView(image));
         this.setAlignment(Pos.TOP_LEFT);
-        this.setPadding(new Insets(5));
+        this.setPadding(new Insets(padding));
         this.setShape(new Circle(image.getHeight()));
     }
 
