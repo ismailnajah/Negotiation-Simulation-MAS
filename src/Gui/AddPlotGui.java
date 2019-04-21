@@ -22,8 +22,6 @@ import java.time.format.DateTimeFormatter;
 
 public class AddPlotGui {
     HomeGui home;
-    FarmerAgent agent;
-
 
     Label plotNameLabel = new Label("Nom du parcelle");
     Label typeLabel = new Label("Type de culture");
@@ -40,10 +38,9 @@ public class AddPlotGui {
 
     Button saveB = new Button("Enregistrer");
     Stage window = new Stage();
-    public AddPlotGui(HomeGui home, FarmerAgent agent){
+    public AddPlotGui(HomeGui home){
 
         this.home = home;
-        this.agent = agent;
 
         GridPane layout = new GridPane();
         layout.setHgap(20);
@@ -99,9 +96,8 @@ public class AddPlotGui {
                         ,Float.parseFloat(qte_water.getText()));
                 GuiEvent guiEvent = new GuiEvent(this,2);
                 guiEvent.addParameter(plot);
-                agent.onGuiEvent(guiEvent);
-                home.farmer.getPlots().addElement(plot);
-                home.populatePlotCB();
+                home.farmerAgent.onGuiEvent(guiEvent);
+                home.addPlot(plot);
                 window.close();
             }
         });

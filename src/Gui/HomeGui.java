@@ -175,12 +175,8 @@ public class HomeGui extends Stage {
 
         //add Plot
         addPlotB.setOnAction(event->{
-            new AddPlotGui(HomeGui.this,farmerAgent);
+            new AddPlotGui(HomeGui.this);
 
-        });
-        //remove Plot
-        removePlotB.setOnAction(event->{
-            new RemovePlotGui(plotsCB.getValue(),HomeGui.this);
         });
 
         //real header
@@ -205,6 +201,7 @@ public class HomeGui extends Stage {
         this.setTitle("Accueil");
         this.setMinWidth(430);
         this.setMinHeight(620);
+        this.setResizable(false);
     }
 
     private void SavePlotChanges(ActionEvent event) {
@@ -239,10 +236,14 @@ public class HomeGui extends Stage {
         String[] plotsNames;
         int size = plots.size();
         if(size>0){
+            removePlotB.setOnAction(event->{
+                new RemovePlotGui(plotsCB.getValue(),HomeGui.this);
+            });
             plotsNames = new String[size];
             for(int i=0;i<size;i++)
                 plotsNames[i] = plots.get(i).getP_name();
         }else{
+            removePlotB.setOnAction(null);
             plotsNames = new String[]{"Vide"};
         }
         plotsCB.getItems().clear();
@@ -274,6 +275,16 @@ public class HomeGui extends Stage {
                 return plot;
         }
         return null;
+    }
+
+    public void addPlot(Plot plot){
+        farmer.getPlots().addElement(plot);
+        plotsCB.getItems().add(plot.getP_name());
+        plotsCB.setValue(plot.getP_name());
+        typeTF.setText(plot.getType());
+        areaNF.setText(""+plot.getArea());
+        s_datePK.setValue(LocalDate.parse(plot.getS_date().toString()));
+        qte_water.setText(plot.getWater_qte()+"");
     }
 
     public void removePlot(String plot_name){
