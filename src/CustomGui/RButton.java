@@ -13,9 +13,8 @@ public class RButton extends Button {
         super();
         Image image = new Image(getClass().getResourceAsStream(path), width, hight, true, true);
         this.setGraphic(new ImageView(image));
-        this.setAlignment(Pos.TOP_LEFT);
         this.setPadding(new Insets(padding));
-        this.setShape(new Circle(image.getHeight()));
+        this.setShape(new Circle(image.getWidth()));
     }
 
 }

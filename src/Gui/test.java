@@ -10,7 +10,7 @@ public class test extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        primaryStage = new HomeGui(null);
-        primaryStage.show();
+        /*primaryStage = new RemovePlotGui("hello",null);
+        primaryStage.show();*/
     }
 }

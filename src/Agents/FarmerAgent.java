@@ -46,16 +46,33 @@ public class FarmerAgent extends GuiAgent {
             case 1:
                 SavePlot((Plot)guiEvent.getParameter(0));
                 break;
-
             case 2:
                 //add new Plot;
                 addPlot((Plot)guiEvent.getParameter(0));
                 break;
             case 3:
+                //delete plot
+                removePlot((Plot)guiEvent.getParameter(0));
+                break;
+            case 4:
+                // logout
                 FarmerAgent.this.doDelete();
                 break;
             default:
                 //sent to gestionnaire;
+        }
+    }
+
+    private void removePlot(Plot plot) {
+        ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
+        request.setOntology(Onthologies.plot_removing);
+        request.addReceiver(new AID(Database.manager, AID.ISLOCALNAME));
+
+        try {
+            request.setContentObject(plot);
+            send(request);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

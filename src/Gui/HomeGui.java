@@ -35,7 +35,8 @@ public class HomeGui extends Stage {
     Farmer farmer;
     FarmerAgent farmerAgent;
     ChoiceBox<String> plotsCB = new ChoiceBox<>();
-    RButton addPlotB = new RButton("add.png",20,20,2);
+    RButton addPlotB = new RButton("add.png",20,20,1);
+    RButton removePlotB = new RButton("remove.jpg",20,20,2);
 
     Label plotsLabel = new Label("Choisi une parcelle");
     Label typeLabel = new Label("Type de culture");
@@ -91,7 +92,11 @@ public class HomeGui extends Stage {
         //choisi une parcelle
         header.setPadding(new Insets(20));
         header.setSpacing(20);
-        header.getChildren().addAll(plotsLabel,plotsCB,addPlotB);
+        header.getChildren().addAll(plotsLabel,plotsCB,addPlotB,removePlotB);
+
+        addPlotB.setTooltip(new Tooltip("Ajouter une parcelle"));
+        removePlotB.setTooltip(new Tooltip("Supprimer la parcelle selectionnée"));
+
         plotsLabel.setPadding(new Insets(0,20,0,0));
 
         plotsCB.setTooltip(new Tooltip("Secelctionner une parcelle"));
@@ -173,6 +178,10 @@ public class HomeGui extends Stage {
             new AddPlotGui(HomeGui.this,farmerAgent);
 
         });
+        //remove Plot
+        removePlotB.setOnAction(event->{
+            new RemovePlotGui(plotsCB.getValue(),HomeGui.this);
+        });
 
         //real header
         HBox logoutBox = new HBox();
@@ -182,7 +191,7 @@ public class HomeGui extends Stage {
         logoutBox.setSpacing(100);
 
         logout.setOnAction(event->{
-            GuiEvent guiEvent = new GuiEvent(this,3);
+            GuiEvent guiEvent = new GuiEvent(this,4);
             farmerAgent.onGuiEvent(guiEvent);
         });
 
@@ -250,6 +259,11 @@ public class HomeGui extends Stage {
             areaNF.setText(""+plot.getArea());
             s_datePK.setValue(LocalDate.parse(plot.getS_date().toString()));
             qte_water.setText(plot.getWater_qte()+"");
+        }else{
+            typeTF.setText("");
+            areaNF.setText("");
+            s_datePK.setValue(null);
+            qte_water.setText("");
         }
     }
 
@@ -260,6 +274,15 @@ public class HomeGui extends Stage {
                 return plot;
         }
         return null;
+    }
+
+    public void removePlot(String plot_name){
+
+        Plot plot = getPlot(plot_name);
+        if(plot!=null) {
+            farmer.getPlots().remove(plot);
+        }
+        populatePlotCB();
     }
 
     public boolean isChanged(){

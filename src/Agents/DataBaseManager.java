@@ -4,6 +4,7 @@ import com.example.android.distributeurdeau.models.Database;
 import com.example.android.distributeurdeau.models.Farmer;
 import com.example.android.distributeurdeau.models.Onthologies;
 import com.example.android.distributeurdeau.models.Plot;
+import com.sun.deploy.resources.Deployment_zh_CN;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
@@ -39,8 +40,6 @@ public class DataBaseManager extends Agent {
                     if (msg != null && connect != null) {
                         ACLMessage res = msg.createReply();
                         Farmer farmer = null;
-                        boolean status = false;// represent function success
-
 
                         if (msg.getPerformative() == ACLMessage.REQUEST) {
                             switch (msg.getOntology()) {
@@ -72,17 +71,25 @@ public class DataBaseManager extends Agent {
                                 case (Onthologies.plot_modification):
                                     res.setOntology(Onthologies.plot_modification);
                                     Plot plot = (Plot)msg.getContentObject();
-                                    status = EditePlot(plot);
-                                    if(status)
+                                    if(EditePlot(plot))
                                         res.setPerformative(ACLMessage.CONFIRM);
                                     else
                                         res.setPerformative(ACLMessage.FAILURE);
                                     break;
+
                                 case (Onthologies.plot_addition):
                                     res.setOntology(Onthologies.plot_addition);
                                     plot = (Plot)msg.getContentObject();
-                                    status = addPlot(plot);
-                                    if(status)
+                                    if(addPlot(plot))
+                                        res.setPerformative(ACLMessage.CONFIRM);
+                                    else
+                                        res.setPerformative(ACLMessage.FAILURE);
+                                    break;
+
+                                case (Onthologies.plot_removing):
+                                    res.setOntology(Onthologies.plot_removing);
+                                    plot = (Plot)msg.getContentObject();
+                                    if(removePlot(plot))
                                         res.setPerformative(ACLMessage.CONFIRM);
                                     else
                                         res.setPerformative(ACLMessage.FAILURE);
@@ -97,6 +104,7 @@ public class DataBaseManager extends Agent {
             }
         });
     }
+
 
 
     public Farmer getFarmer(String farmer_num, String password){
@@ -206,6 +214,19 @@ public class DataBaseManager extends Agent {
         }
 
         return status;
+    }
+
+    private boolean removePlot(Plot plot) {
+        String query = "DELETE FROM "+Database.table_plots+" WHERE "+ Database.p_name + tool(plot.getP_name()) + " and "
+                + Database.farmer_num + tool(plot.getFarmer().getFarmer_num());
+
+        try {
+            connect.prepareStatement(query).executeUpdate();
+            return true;
+        } catch (SQLException e) {
+
+            return false;
+        }
     }
 
     private String tool(String value){

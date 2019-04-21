@@ -4,7 +4,6 @@ package Gui;
 import Agents.FarmerAgent;
 import CustomGui.NumberField;
 import CustomGui.textField;
-import com.example.android.distributeurdeau.models.Farmer;
 import com.example.android.distributeurdeau.models.Plot;
 import jade.gui.GuiEvent;
 import javafx.geometry.Insets;
@@ -12,7 +11,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -50,7 +48,7 @@ public class AddPlotGui {
         GridPane layout = new GridPane();
         layout.setHgap(20);
         layout.setVgap(20);
-        layout.setPadding(new Insets(0,0,20,0));
+        layout.setPadding(new Insets(20));
 
         //Plot name
         layout.setConstraints(plotNameLabel,1,0);
