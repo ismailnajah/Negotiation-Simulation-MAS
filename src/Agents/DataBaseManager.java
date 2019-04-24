@@ -1,15 +1,14 @@
 package Agents;
 
-import com.example.android.distributeurdeau.models.Database;
-import com.example.android.distributeurdeau.models.Farmer;
-import com.example.android.distributeurdeau.models.Onthologies;
-import com.example.android.distributeurdeau.models.Plot;
+import com.example.android.distributeurdeau.models.*;
 import com.sun.deploy.resources.Deployment_zh_CN;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.lang.acl.ACLMessage;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.sql.*;
 import java.sql.Date;
 import java.util.Vector;
@@ -18,6 +17,7 @@ public class DataBaseManager extends Agent {
     Connection connect = null;
     Statement statement = null;
     ResultSet resultSet = null;
+    ACLMessage msg;
     @Override
     protected void setup() {
         addBehaviour(new OneShotBehaviour() {
@@ -36,7 +36,7 @@ public class DataBaseManager extends Agent {
             @Override
             public void action() {
                 try {
-                    ACLMessage msg = receive();
+                    msg = receive();
                     if (msg != null && connect != null) {
                         ACLMessage res = msg.createReply();
                         Farmer farmer = null;
@@ -56,16 +56,10 @@ public class DataBaseManager extends Agent {
                                     break;
 
                                 case (Onthologies.authentication):
-                                    res.setOntology(Onthologies.authentication);
                                     String login = msg.getUserDefinedParameter(Database.farmer_num);
                                     String pass = msg.getUserDefinedParameter(Database.password);
-                                    farmer = getFarmer(login, pass);
-                                    if (farmer != null) {
-                                        res.setPerformative(ACLMessage.CONFIRM);
-                                        res.setContentObject(farmer);
-                                    } else {
-                                        res.setPerformative(ACLMessage.REFUSE);
-                                    }
+                                    boolean isFarmer = Boolean.valueOf(msg.getUserDefinedParameter(Database.is_farmer));
+                                    res = getAccount(login,pass,isFarmer);
                                     break;
 
                                 case (Onthologies.plot_modification):
@@ -233,4 +227,74 @@ public class DataBaseManager extends Agent {
         return "='"+value+"'";
     }
     private String tol(String value){ return "'"+value+"'";}
+
+    public ACLMessage getAccount(String login,String pass,boolean isFarmer){
+        ACLMessage respons = msg.createReply();
+        respons.setOntology(Onthologies.authentication);
+        try {
+            if(isFarmer){
+                Farmer farmer = getFarmer(login,pass);
+                if(farmer!=null){
+                    respons.setContentObject(farmer);
+                    respons.setPerformative(ACLMessage.CONFIRM);
+                }else {
+                    respons.setPerformative(ACLMessage.REFUSE);
+                }
+            }else{
+                Supervisor supervisor = getSupervisor(login,pass);
+                if(supervisor!=null){
+                    respons.setContentObject(supervisor);
+                    respons.setPerformative(ACLMessage.CONFIRM);
+                }else{
+                    respons.setPerformative(ACLMessage.REFUSE);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        respons.addUserDefinedParameter(Database.is_farmer,String.valueOf(isFarmer));
+        return respons;
+    }
+
+    private Supervisor getSupervisor(String login, String password) {
+        final String query = "select * from "+Database.table_supervisor+" where "+ Database.supervisorId +"='"+login +"'";
+        Supervisor supervisor = null;
+        try{
+            statement = connect.createStatement();
+            resultSet = statement.executeQuery(query);
+            if(resultSet.next()) {
+                if (password.equals(resultSet.getString(Database.password))) {
+                    String l_name = resultSet.getString(Database.l_name);
+                    String f_name = resultSet.getString(Database.f_name);
+                    supervisor = new Supervisor(f_name,l_name, login,password);
+                    supervisor.setFarmers(getSupervisorFarmers(supervisor));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return supervisor;
+    }
+
+    private Vector<Farmer> getSupervisorFarmers(Supervisor supervisor) {
+        final String query = "select * from "+Database.table_farmers;
+        Vector<Farmer> farmes = new Vector<>();
+        try{
+            statement = connect.createStatement();
+            resultSet = statement.executeQuery(query);
+            while(resultSet.next()) {
+                String fname = resultSet.getString(Database.f_name);
+                String lname = resultSet.getString(Database.l_name);
+                String farmer_num = resultSet.getString(Database.farmer_num);
+                String pass = resultSet.getString(Database.password);
+                farmes.addElement(new Farmer(farmer_num,fname,lname,pass));
+            }
+            for(Farmer f : farmes){
+                f.setPlots(getFarmerPlots(f));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return farmes;
+    }
 }

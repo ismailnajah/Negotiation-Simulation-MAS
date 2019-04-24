@@ -64,6 +64,7 @@ public class LoginAgent extends GuiAgent {
             ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
             request.addUserDefinedParameter(Database.farmer_num, (String)guiEvent.getParameter(0).toString());
             request.addUserDefinedParameter(Database.password, (String)guiEvent.getParameter(1).toString());
+            request.addUserDefinedParameter(Database.is_farmer,String.valueOf(true));
             request.addReceiver(new AID(Database.manager,AID.ISLOCALNAME));
             request.setOntology(Onthologies.authentication);
             send(request);
