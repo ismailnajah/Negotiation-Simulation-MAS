@@ -200,7 +200,6 @@ public class DataBaseManager extends Agent {
     private boolean removePlot(String p_name,String farmer_num) {
         String query = "DELETE FROM "+Database.table_plots+" WHERE "+ Database.p_name + tool(p_name) + " and "
                 + Database.farmer_num + tool(farmer_num);
-        System.out.println(query);
         return executeUpdate(query);
     }
 
