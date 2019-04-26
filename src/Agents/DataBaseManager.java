@@ -1,16 +1,13 @@
 package Agents;
 
 import com.example.android.distributeurdeau.models.*;
-import com.sun.deploy.resources.Deployment_zh_CN;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.lang.acl.ACLMessage;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.sql.*;
-import java.sql.Date;
 import java.util.Vector;
 
 public class DataBaseManager extends Agent {
@@ -40,15 +37,13 @@ public class DataBaseManager extends Agent {
                     if (msg != null && connect != null) {
                         ACLMessage res = msg.createReply();
                         Farmer farmer = null;
-
                         if (msg.getPerformative() == ACLMessage.REQUEST) {
                             switch (msg.getOntology()) {
                                 case (Onthologies.registration):
                                     // create new user account
                                     res.setOntology(Onthologies.registration);
                                     farmer = (Farmer) msg.getContentObject();
-                                    String callback = addFarmer(farmer);
-                                    if (callback.equals(Database.error)) {
+                                    if (addFarmer(farmer)) {
                                         res.setPerformative(ACLMessage.FAILURE);
                                     } else {
                                         res.setPerformative(ACLMessage.CONFIRM);
@@ -81,9 +76,21 @@ public class DataBaseManager extends Agent {
                                     break;
 
                                 case (Onthologies.plot_removing):
+                                    System.out.println("debug");
                                     res.setOntology(Onthologies.plot_removing);
-                                    plot = (Plot)msg.getContentObject();
-                                    if(removePlot(plot))
+                                    String pName = msg.getUserDefinedParameter(Database.p_name);
+                                    String farmerNum = msg.getUserDefinedParameter(Database.farmer_num);
+                                    if(removePlot(pName,farmerNum))
+                                        res.setPerformative(ACLMessage.CONFIRM);
+                                    else
+                                        res.setPerformative(ACLMessage.FAILURE);
+                                    break;
+
+                                case (Onthologies.plot_send):
+                                    res.setOntology(Onthologies.plot_send);
+                                    String p_name = msg.getUserDefinedParameter(Database.p_name);
+                                    String farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
+                                    if(sendPlot(p_name,farmer_num))
                                         res.setPerformative(ACLMessage.CONFIRM);
                                     else
                                         res.setPerformative(ACLMessage.FAILURE);
@@ -101,6 +108,7 @@ public class DataBaseManager extends Agent {
 
 
 
+
     public Farmer getFarmer(String farmer_num, String password){
         final String query = "select * from "+Database.table_farmers+" where "+ Database.farmer_num +"='"+farmer_num +"'";
         Farmer farmer = null;
@@ -112,7 +120,7 @@ public class DataBaseManager extends Agent {
                     String l_name = resultSet.getString(Database.l_name);
                     String f_name = resultSet.getString(Database.f_name);
                     farmer = new Farmer(farmer_num, f_name,l_name, password);
-                    farmer.setPlots(getFarmerPlots(farmer));
+                    farmer.setPlots(getFarmerPlots(farmer,""));
                 }
             }
         } catch (SQLException e) {
@@ -122,8 +130,11 @@ public class DataBaseManager extends Agent {
     }
 
 
-    private Vector<Plot> getFarmerPlots(Farmer farmer) {
-        final String query = "select * from "+Database.table_plots+" where "+Database.farmer_num + "='"+farmer.getFarmer_num()+"'";
+    private Vector<Plot> getFarmerPlots(Farmer farmer,String sentOnly) {
+        final String query = "select * from "+Database.table_plots+
+                " where "+Database.farmer_num + tool(farmer.getFarmer_num())+" "+
+                sentOnly+
+                " ORDER BY modified DESC";
         Vector<Plot> plots = new Vector<>();
         try{
             statement = connect.createStatement();
@@ -134,7 +145,9 @@ public class DataBaseManager extends Agent {
                 float water_qte = resultSet.getFloat(Database.water_qte);
                 Date s_date = resultSet.getDate(Database.sowing_date);
                 String type = resultSet.getString(Database.type);
-                plots.addElement(new Plot(farmer,p_name,type,s_date,area,water_qte));
+                Plot plot = new Plot(farmer,p_name,type,s_date,area,water_qte);
+                plot.setStatus(resultSet.getInt(Database.plotStatus));
+                plots.addElement(plot);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -144,29 +157,19 @@ public class DataBaseManager extends Agent {
     }
 
 
-    public String addFarmer(Farmer farmer){
-        String status;
+    public boolean addFarmer(Farmer farmer){
         String l_name = farmer.getL_name();
         String f_name = farmer.getF_name();
         String farmer_num = farmer.getFarmer_num();
         String password = farmer.getPassword();
 
-        String query = "insert into "+ Database.table_farmers+" values ('"+farmer_num+"','"+f_name+"','"+l_name+"','"+password+")";
+        String query = "insert into "+ Database.table_farmers+ " values ('"+farmer_num+"','"+f_name+"','"+l_name+"','"+password+")";
 
-        try {
-            connect.prepareStatement(query).executeUpdate();
-            status = Database.success;
-        } catch (SQLException e) {
-            status = Database.error;
-            e.printStackTrace();
-        }
-
-        return status;
+        return executeUpdate(query);
     }
 
 
     public boolean EditePlot(Plot plot){
-        boolean status;
         final String date = tool(plot.getS_date().toString());
         final String newPlotValues = Database.type + tool(plot.getType())
                                     +" , "+Database.area+"="+plot.getArea()
@@ -176,57 +179,36 @@ public class DataBaseManager extends Agent {
                             " where "+ Database.p_name+tool(plot.getP_name())
                             +" and " + Database.farmer_num+tool(plot.getFarmer().getFarmer_num());
 
-        try {
-            connect.prepareStatement(query).executeUpdate();
-            status = true;
-        } catch (SQLException e) {
-            status = false;
-        }
-        return status;
+        return executeUpdate(query);
     }
 
     private boolean addPlot(Plot plot) {
-        boolean status = false;
-
         final String p_name = tol(plot.getP_name());
         final String farmer_num = tol(plot.getFarmer().getFarmer_num());
         final String type = tol(plot.getType());
         final float area = plot.getArea();
         final String date = tol(plot.getS_date().toString());
         final float water_qte = plot.getWater_qte();
+        final float pstatus = plot.getStatus();
         final String c = ",";
 
         String query = "INSERT into "+Database.table_plots+" VALUES ("+p_name + c + farmer_num + c + type + c +
-                                            area + c + date + c + water_qte + ")";
-
-        try {
-            connect.prepareStatement(query).executeUpdate();
-            status = true;
-        } catch (SQLException e) {
-            status = false;
-            e.printStackTrace();
-        }
-
-        return status;
+                                            area + c + date + c + water_qte + c +pstatus+",now())";
+        return executeUpdate(query);
     }
 
-    private boolean removePlot(Plot plot) {
-        String query = "DELETE FROM "+Database.table_plots+" WHERE "+ Database.p_name + tool(plot.getP_name()) + " and "
-                + Database.farmer_num + tool(plot.getFarmer().getFarmer_num());
-
-        try {
-            connect.prepareStatement(query).executeUpdate();
-            return true;
-        } catch (SQLException e) {
-
-            return false;
-        }
+    private boolean removePlot(String p_name,String farmer_num) {
+        String query = "DELETE FROM "+Database.table_plots+" WHERE "+ Database.p_name + tool(p_name) + " and "
+                + Database.farmer_num + tool(farmer_num);
+        System.out.println(query);
+        return executeUpdate(query);
     }
 
-    private String tool(String value){
-        return "='"+value+"'";
+    private boolean sendPlot(String p_name, String farmer_num) {
+        String query = "UPDATE "+Database.table_plots+" SET "+ Database.plotStatus + " = 1 WHERE " +
+                Database.farmer_num + tool(farmer_num) + " AND " + Database.p_name + tool(p_name)+";";
+        return executeUpdate(query);
     }
-    private String tol(String value){ return "'"+value+"'";}
 
     public ACLMessage getAccount(String login,String pass,boolean isFarmer){
         ACLMessage respons = msg.createReply();
@@ -289,12 +271,31 @@ public class DataBaseManager extends Agent {
                 String pass = resultSet.getString(Database.password);
                 farmes.addElement(new Farmer(farmer_num,fname,lname,pass));
             }
+            String sentOnly ="AND "+Database.plotStatus +" IN (1,2) ";
             for(Farmer f : farmes){
-                f.setPlots(getFarmerPlots(f));
+                f.setPlots(getFarmerPlots(f,sentOnly));
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return farmes;
     }
+
+    private boolean executeUpdate(String query){
+        boolean status;
+        try {
+            connect.prepareStatement(query).executeUpdate();
+            status = true;
+        } catch (SQLException e) {
+            status = false;
+            e.printStackTrace();
+        }
+        return status;
+    }
+
+    private String tool(String value){
+        return "='"+value+"'";
+    }
+    private String tol(String value){ return "'"+value+"'";}
+
 }

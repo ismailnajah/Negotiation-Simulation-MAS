@@ -16,7 +16,7 @@ public class MainWindow extends Application {
    public static AgentController controller;
    public static String loginAgentName = "loginAgent";
 
-    static Stage window = new LoginGui();
+   static Stage window = new LoginGui();
 
 
     public static void main(String[] args){
@@ -28,6 +28,7 @@ public class MainWindow extends Application {
 
         startContainer();
         window.show();
+
 
     }
 

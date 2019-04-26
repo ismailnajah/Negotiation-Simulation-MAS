@@ -29,4 +29,5 @@ public class Database {
     public static String error = "error";
     public static String success = "success";
 
+    public static String plotStatus = "status";
 }
