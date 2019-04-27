@@ -8,6 +8,7 @@ import jade.lang.acl.ACLMessage;
 
 import java.io.IOException;
 import java.sql.*;
+import java.time.Year;
 import java.util.Vector;
 
 public class DataBaseManager extends Agent {
@@ -87,6 +88,7 @@ public class DataBaseManager extends Agent {
                                     break;
 
                                 case (Onthologies.plot_send):
+                                    showData();
                                     res.setOntology(Onthologies.plot_send);
                                     String p_name = msg.getUserDefinedParameter(Database.p_name);
                                     String farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
@@ -147,6 +149,11 @@ public class DataBaseManager extends Agent {
                 String type = resultSet.getString(Database.type);
                 Plot plot = new Plot(farmer,p_name,type,s_date,area,water_qte);
                 plot.setStatus(resultSet.getInt(Database.plotStatus));
+                plot.setET0(resultSet.getFloat(Database.ET0));
+                plot.setPLUIE(resultSet.getFloat(Database.PLUIE));
+                plot.setKc(resultSet.getFloat(Database.Kc));
+                plot.setYm(resultSet.getFloat(Database.Ym));
+                plot.setKy(resultSet.getFloat(Database.Ky));
                 plots.addElement(plot);
             }
         } catch (SQLException e) {
@@ -189,11 +196,12 @@ public class DataBaseManager extends Agent {
         final float area = plot.getArea();
         final String date = tol(plot.getS_date().toString());
         final float water_qte = plot.getWater_qte();
-        final float pstatus = plot.getStatus();
         final String c = ",";
 
         String query = "INSERT into "+Database.table_plots+" VALUES ("+p_name + c + farmer_num + c + type + c +
-                                            area + c + date + c + water_qte + c +pstatus+",now())";
+                                            area + c + date + c + water_qte + c + plot.getET0() +
+                                        c + plot.getPLUIE() + c + plot.getKc() + c + plot.getYm() + c + plot.getKy() + c +
+                                    "default,default,)";
         return executeUpdate(query);
     }
 
@@ -280,6 +288,33 @@ public class DataBaseManager extends Agent {
         return farmes;
     }
 
+    private Vector<Culture_data> getCultureData(){
+        final String query = "Select * from " + Database.table_culture_Data;
+        Vector<Culture_data> culture_data = new Vector<>();
+        try{
+            statement = connect.createStatement();
+            resultSet = statement.executeQuery(query);
+            while(resultSet.next()){
+                String name = resultSet.getString(Database.type_name);
+                Date start = DateFromMonth(resultSet.getString(Database.sowing_start));
+                Date end = DateFromMonth(resultSet.getString(Database.sowing_end));
+                float price = resultSet.getFloat(Database.price);
+                float variable_price = resultSet.getFloat(Database.variable_price);
+                float fixed_price = resultSet.getFloat(Database.fixed_price);
+                culture_data.addElement(new Culture_data(name,start,end,price,variable_price,fixed_price));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return culture_data;
+    }
+
+    private Date DateFromMonth(String string) {
+        String date = Year.now().getValue() + "-" + string;
+        return Date.valueOf(date);
+    }
+
     private boolean executeUpdate(String query){
         boolean status;
         try {
@@ -296,5 +331,11 @@ public class DataBaseManager extends Agent {
         return "='"+value+"'";
     }
     private String tol(String value){ return "'"+value+"'";}
-
+    //debug
+    public void showData(){
+        Vector<Culture_data> culture_data = getCultureData();
+        for(Culture_data c: culture_data){
+            System.out.println(c.toString());
+        }
+    }
 }
