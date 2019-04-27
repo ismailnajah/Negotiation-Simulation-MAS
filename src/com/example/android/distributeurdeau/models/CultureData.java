@@ -4,7 +4,7 @@ import jade.util.leap.Serializable;
 
 import java.sql.Date;
 
-public class Culture_data implements Serializable {
+public class CultureData implements Serializable {
     private String name;
     private Date start_s_date;
     private Date end_s_date;
@@ -12,7 +12,7 @@ public class Culture_data implements Serializable {
     private float v_price;
     private float f_price;
 
-    public Culture_data(String name, Date start_s_date, Date end_s_date, float price, float v_price, float f_price) {
+    public CultureData(String name, Date start_s_date, Date end_s_date, float price, float v_price, float f_price) {
         this.name = name;
         this.start_s_date = start_s_date;
         this.end_s_date = end_s_date;
@@ -71,7 +71,7 @@ public class Culture_data implements Serializable {
 
     @Override
     public String toString() {
-        return "Culture_data{" +
+        return "CultureData{" +
                 "name='" + name + '\'' +
                 ", start_s_date=" + start_s_date +
                 ", end_s_date=" + end_s_date +

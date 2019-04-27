@@ -8,4 +8,6 @@ public class Onthologies {
     public static final String plot_removing = "plot-delete";
     public static final String plot_send = "plot-send";
     public static final String culture_data = "culture-data";
+    public static final String propose_plot = "propose-plot";
+    public static final String end_negotiation = "end-negotiation";
 }

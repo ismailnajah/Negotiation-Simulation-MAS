@@ -4,6 +4,7 @@ public class Database {
     // table names
     public static String table_farmers = "farmers";
     public static String table_plots = "plots";
+    public static String table_proposed_plots = "proposed_plots";
     public static String table_culture_Data = "type_agriculture";
     public static String table_supervisor = "supervisors";
 
@@ -44,5 +45,7 @@ public class Database {
     public static String success = "success";
 
     public static String plotStatus = "status";
+
+    public static String dotation = "dotation";
 
 }

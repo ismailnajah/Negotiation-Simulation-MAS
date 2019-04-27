@@ -55,13 +55,13 @@ public class DataBaseManager extends Agent {
                                     String login = msg.getUserDefinedParameter(Database.farmer_num);
                                     String pass = msg.getUserDefinedParameter(Database.password);
                                     boolean isFarmer = Boolean.valueOf(msg.getUserDefinedParameter(Database.is_farmer));
-                                    res = getAccount(login,pass,isFarmer);
+                                    res = getAccount(login, pass, isFarmer);
                                     break;
 
                                 case (Onthologies.plot_modification):
                                     res.setOntology(Onthologies.plot_modification);
-                                    Plot plot = (Plot)msg.getContentObject();
-                                    if(EditePlot(plot))
+                                    Plot plot = (Plot) msg.getContentObject();
+                                    if (EditePlot(plot))
                                         res.setPerformative(ACLMessage.CONFIRM);
                                     else
                                         res.setPerformative(ACLMessage.FAILURE);
@@ -69,35 +69,55 @@ public class DataBaseManager extends Agent {
 
                                 case (Onthologies.plot_addition):
                                     res.setOntology(Onthologies.plot_addition);
-                                    plot = (Plot)msg.getContentObject();
-                                    if(addPlot(plot))
+                                    plot = (Plot) msg.getContentObject();
+                                    if (addPlot(plot, Database.table_plots))
                                         res.setPerformative(ACLMessage.CONFIRM);
                                     else
                                         res.setPerformative(ACLMessage.FAILURE);
                                     break;
 
                                 case (Onthologies.plot_removing):
-                                    System.out.println("debug");
                                     res.setOntology(Onthologies.plot_removing);
                                     String pName = msg.getUserDefinedParameter(Database.p_name);
                                     String farmerNum = msg.getUserDefinedParameter(Database.farmer_num);
-                                    if(removePlot(pName,farmerNum))
+                                    if (removePlot(pName, farmerNum))
                                         res.setPerformative(ACLMessage.CONFIRM);
                                     else
                                         res.setPerformative(ACLMessage.FAILURE);
                                     break;
 
                                 case (Onthologies.plot_send):
-                                    showData();
                                     res.setOntology(Onthologies.plot_send);
                                     String p_name = msg.getUserDefinedParameter(Database.p_name);
                                     String farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
-                                    if(sendPlot(p_name,farmer_num))
+                                    float water_qte = Float.parseFloat(msg.getUserDefinedParameter(Database.water_qte));
+                                    if (sendPlot(p_name, farmer_num, water_qte))
                                         res.setPerformative(ACLMessage.CONFIRM);
                                     else
                                         res.setPerformative(ACLMessage.FAILURE);
                                     break;
+                                case (Onthologies.culture_data):
+                                    res.setOntology(Onthologies.culture_data);
+                                    Vector<CultureData> cultureData = getCultureData();
+                                    res.setContentObject(cultureData);
+                                    if (cultureData.size() > 0)
+                                        res.setPerformative(ACLMessage.CONFIRM);
+                                    else
+                                        res.setPerformative(ACLMessage.FAILURE);
+                                    break;
+
                             }
+                        } else if (msg.getPerformative() == ACLMessage.PROPOSE) {
+                            res.setOntology(Onthologies.propose_plot);
+                            Plot proposedPlot = (Plot) msg.getContentObject();
+                            if (addPlot(proposedPlot, Database.table_proposed_plots))
+                                res.setPerformative(ACLMessage.CONFIRM);
+                            else
+                                res.setPerformative(ACLMessage.FAILURE);
+                        } else if (msg.getPerformative() == ACLMessage.REQUEST) {
+                            res.setOntology(Onthologies.end_negotiation);
+                            String p_name = msg.getUserDefinedParameter(Database.p_name);
+                            String farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
                         }
                         send(res);
                     }
@@ -154,6 +174,7 @@ public class DataBaseManager extends Agent {
                 plot.setKc(resultSet.getFloat(Database.Kc));
                 plot.setYm(resultSet.getFloat(Database.Ym));
                 plot.setKy(resultSet.getFloat(Database.Ky));
+                plot.setDotation(resultSet.getFloat(Database.dotation));
                 plots.addElement(plot);
             }
         } catch (SQLException e) {
@@ -189,7 +210,7 @@ public class DataBaseManager extends Agent {
         return executeUpdate(query);
     }
 
-    private boolean addPlot(Plot plot) {
+    private boolean addPlot(Plot plot, String tableName) {
         final String p_name = tol(plot.getP_name());
         final String farmer_num = tol(plot.getFarmer().getFarmer_num());
         final String type = tol(plot.getType());
@@ -198,10 +219,11 @@ public class DataBaseManager extends Agent {
         final float water_qte = plot.getWater_qte();
         final String c = ",";
 
-        String query = "INSERT into "+Database.table_plots+" VALUES ("+p_name + c + farmer_num + c + type + c +
+        String query = "INSERT into " + tableName + " VALUES (" + p_name + c + farmer_num + c + type + c +
                                             area + c + date + c + water_qte + c + plot.getET0() +
                                         c + plot.getPLUIE() + c + plot.getKc() + c + plot.getYm() + c + plot.getKy() + c +
-                                    "default,default,)";
+                "default,default)";
+        System.out.println(query);
         return executeUpdate(query);
     }
 
@@ -211,9 +233,16 @@ public class DataBaseManager extends Agent {
         return executeUpdate(query);
     }
 
-    private boolean sendPlot(String p_name, String farmer_num) {
-        String query = "UPDATE "+Database.table_plots+" SET "+ Database.plotStatus + " = 1 WHERE " +
+    private boolean sendPlot(String p_name, String farmer_num, float water_qte) {
+        String query = "UPDATE " + Database.table_plots + " SET " + Database.plotStatus + " = 1," +
+                Database.water_qte + " = " + water_qte + " WHERE " +
                 Database.farmer_num + tool(farmer_num) + " AND " + Database.p_name + tool(p_name)+";";
+        return executeUpdate(query);
+    }
+
+    private boolean updateStatus(String p_name, String farmer_num, int status) {
+        String query = "UPDATE " + Database.table_plots + " SET " + Database.plotStatus + " = " + status + " WHERE " +
+                Database.farmer_num + tool(farmer_num) + " AND " + Database.p_name + tool(p_name);
         return executeUpdate(query);
     }
 
@@ -256,7 +285,7 @@ public class DataBaseManager extends Agent {
                     String l_name = resultSet.getString(Database.l_name);
                     String f_name = resultSet.getString(Database.f_name);
                     supervisor = new Supervisor(f_name,l_name, login,password);
-                    supervisor.setFarmers(getSupervisorFarmers(supervisor));
+                    supervisor.setFarmers(getSupervisorFarmers());
                 }
             }
         } catch (SQLException e) {
@@ -265,7 +294,7 @@ public class DataBaseManager extends Agent {
         return supervisor;
     }
 
-    private Vector<Farmer> getSupervisorFarmers(Supervisor supervisor) {
+    private Vector<Farmer> getSupervisorFarmers() {
         final String query = "select * from "+Database.table_farmers;
         Vector<Farmer> farmes = new Vector<>();
         try{
@@ -288,9 +317,10 @@ public class DataBaseManager extends Agent {
         return farmes;
     }
 
-    private Vector<Culture_data> getCultureData(){
+
+    private Vector<CultureData> getCultureData() {
         final String query = "Select * from " + Database.table_culture_Data;
-        Vector<Culture_data> culture_data = new Vector<>();
+        Vector<CultureData> culture_data = new Vector<>();
         try{
             statement = connect.createStatement();
             resultSet = statement.executeQuery(query);
@@ -301,7 +331,7 @@ public class DataBaseManager extends Agent {
                 float price = resultSet.getFloat(Database.price);
                 float variable_price = resultSet.getFloat(Database.variable_price);
                 float fixed_price = resultSet.getFloat(Database.fixed_price);
-                culture_data.addElement(new Culture_data(name,start,end,price,variable_price,fixed_price));
+                culture_data.addElement(new CultureData(name, start, end, price, variable_price, fixed_price));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -331,11 +361,5 @@ public class DataBaseManager extends Agent {
         return "='"+value+"'";
     }
     private String tol(String value){ return "'"+value+"'";}
-    //debug
-    public void showData(){
-        Vector<Culture_data> culture_data = getCultureData();
-        for(Culture_data c: culture_data){
-            System.out.println(c.toString());
-        }
-    }
+
 }
