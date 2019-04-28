@@ -1,9 +1,9 @@
 package Agents;
 
 import Gui.HomeGui;
-import com.example.android.distributeurdeau.models.Database;
+import com.example.android.distributeurdeau.models.Constents.Database;
+import com.example.android.distributeurdeau.models.Constents.Onthologies;
 import com.example.android.distributeurdeau.models.Farmer;
-import com.example.android.distributeurdeau.models.Onthologies;
 import com.example.android.distributeurdeau.models.Plot;
 import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;

@@ -1,7 +1,7 @@
 package MainPackage;
 
 import Agents.DataBaseManager;
-import com.example.android.distributeurdeau.models.Database;
+import com.example.android.distributeurdeau.models.Constents.Database;
 import jade.core.ProfileImpl;
 import jade.core.Runtime;
 import jade.wrapper.AgentContainer;

@@ -1,6 +1,12 @@
 package Agents;
 
-import com.example.android.distributeurdeau.models.*;
+import com.example.android.distributeurdeau.models.Constents.Database;
+import com.example.android.distributeurdeau.models.Constents.Onthologies;
+import com.example.android.distributeurdeau.models.Constents.Queries;
+import com.example.android.distributeurdeau.models.CultureData;
+import com.example.android.distributeurdeau.models.Farmer;
+import com.example.android.distributeurdeau.models.Plot;
+import com.example.android.distributeurdeau.models.Supervisor;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
@@ -61,7 +67,7 @@ public class DataBaseManager extends Agent {
                                 case (Onthologies.plot_modification):
                                     res.setOntology(Onthologies.plot_modification);
                                     Plot plot = (Plot) msg.getContentObject();
-                                    if (EditePlot(plot))
+                                    if (EditPlot(plot))
                                         res.setPerformative(ACLMessage.CONFIRM);
                                     else
                                         res.setPerformative(ACLMessage.FAILURE);
@@ -105,6 +111,11 @@ public class DataBaseManager extends Agent {
                                     else
                                         res.setPerformative(ACLMessage.FAILURE);
                                     break;
+                                case (Onthologies.cancel_negotiation):
+                                    Queries.p_name = msg.getUserDefinedParameter(Database.p_name);
+                                    Queries.farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
+                                    res.setPerformative(CancelNegotiation());
+                                    break;
 
                             }
                         } else if (msg.getPerformative() == ACLMessage.PROPOSE) {
@@ -127,9 +138,6 @@ public class DataBaseManager extends Agent {
             }
         });
     }
-
-
-
 
     public Farmer getFarmer(String farmer_num, String password){
         final String query = "select * from "+Database.table_farmers+" where "+ Database.farmer_num +"='"+farmer_num +"'";
@@ -175,6 +183,8 @@ public class DataBaseManager extends Agent {
                 plot.setYm(resultSet.getFloat(Database.Ym));
                 plot.setKy(resultSet.getFloat(Database.Ky));
                 plot.setDotation(resultSet.getFloat(Database.dotation));
+                plot.proposed = getProposedPlot(p_name, farmer);
+                plot.isFarmerTurn = getTurn(p_name, farmer.getFarmer_num());
                 plots.addElement(plot);
             }
         } catch (SQLException e) {
@@ -196,8 +206,7 @@ public class DataBaseManager extends Agent {
         return executeUpdate(query);
     }
 
-
-    public boolean EditePlot(Plot plot){
+    public boolean EditPlot(Plot plot) {
         final String date = tool(plot.getS_date().toString());
         final String newPlotValues = Database.type + tool(plot.getType())
                                     +" , "+Database.area+"="+plot.getArea()
@@ -208,6 +217,54 @@ public class DataBaseManager extends Agent {
                             +" and " + Database.farmer_num+tool(plot.getFarmer().getFarmer_num());
 
         return executeUpdate(query);
+    }
+
+    public Plot getProposedPlot(String p_name, Farmer farmer) {
+        String query = "SELECT * FROM " + Database.table_proposed_plots + " WHERE "
+                + Database.p_name + tool(p_name) + " AND " + Database.farmer_num + tool(farmer.getFarmer_num());
+        Plot plot = null;
+        try {
+            Statement statement1 = connect.createStatement();
+            ResultSet resul = statement1.executeQuery(query);
+            if (resul.next()) {
+                float area = resul.getFloat(Database.area);
+                float water_qte = resul.getFloat(Database.water_qte);
+                Date s_date = resul.getDate(Database.sowing_date);
+                String type = resul.getString(Database.type);
+                plot = new Plot(farmer, p_name, type, s_date, area, water_qte);
+                plot.setStatus(1);
+                plot.setET0(resul.getFloat(Database.ET0));
+                plot.setPLUIE(resul.getFloat(Database.PLUIE));
+                plot.setKc(resul.getFloat(Database.Kc));
+                plot.setYm(resul.getFloat(Database.Ym));
+                plot.setKy(resul.getFloat(Database.Ky));
+                plot.setDotation(0);
+                plot.proposed = null;
+                plot.isFarmerTurn = true;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return plot;
+    }
+
+    public boolean getTurn(String p_name, String farmer_num) {
+        String query = "Select " + Database.isFarmerTurn + " from " + Database.table_negotiation_turns + " WHERE "
+                + Database.p_name + tool(p_name) + " AND " + Database.farmer_num + tool(farmer_num);
+        boolean isFarmerTurn = true;
+        try {
+            Statement statement1 = connect.createStatement();
+            ResultSet resul = statement1.executeQuery(query);
+            if (resul.next()) {
+                isFarmerTurn = resultSet.getBoolean(Database.isFarmerTurn);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return isFarmerTurn;
+
     }
 
     private boolean addPlot(Plot plot, String tableName) {
@@ -223,7 +280,6 @@ public class DataBaseManager extends Agent {
                                             area + c + date + c + water_qte + c + plot.getET0() +
                                         c + plot.getPLUIE() + c + plot.getKc() + c + plot.getYm() + c + plot.getKy() + c +
                 "default,default)";
-        System.out.println(query);
         return executeUpdate(query);
     }
 
@@ -236,13 +292,12 @@ public class DataBaseManager extends Agent {
     private boolean sendPlot(String p_name, String farmer_num, float water_qte) {
         String query = "UPDATE " + Database.table_plots + " SET " + Database.plotStatus + " = 1," +
                 Database.water_qte + " = " + water_qte + " WHERE " +
-                Database.farmer_num + tool(farmer_num) + " AND " + Database.p_name + tool(p_name)+";";
+                Database.farmer_num + tool(farmer_num) + " AND " + Database.p_name + tool(p_name);
         return executeUpdate(query);
     }
 
-    private boolean updateStatus(String p_name, String farmer_num, int status) {
-        String query = "UPDATE " + Database.table_plots + " SET " + Database.plotStatus + " = " + status + " WHERE " +
-                Database.farmer_num + tool(farmer_num) + " AND " + Database.p_name + tool(p_name);
+    private boolean updateStatus(int status) {
+        String query = Queries.UpdatePlotStatus(status);
         return executeUpdate(query);
     }
 
@@ -340,6 +395,14 @@ public class DataBaseManager extends Agent {
         return culture_data;
     }
 
+    private int CancelNegotiation() {
+        String query = Queries.DeleteProposedPlot();
+        if (executeUpdate(query) && updateStatus(0))
+            return ACLMessage.CONFIRM;
+        else
+            return ACLMessage.FAILURE;
+    }
+
     private Date DateFromMonth(String string) {
         String date = Year.now().getValue() + "-" + string;
         return Date.valueOf(date);
@@ -360,6 +423,7 @@ public class DataBaseManager extends Agent {
     private String tool(String value){
         return "='"+value+"'";
     }
+
     private String tol(String value){ return "'"+value+"'";}
 
 }

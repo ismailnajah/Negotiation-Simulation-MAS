@@ -1,10 +1,10 @@
 package Agents;
 
-import Gui.RegisterGui;
 import Gui.LoginGui;
-import com.example.android.distributeurdeau.models.Database;
+import Gui.RegisterGui;
+import com.example.android.distributeurdeau.models.Constents.Database;
+import com.example.android.distributeurdeau.models.Constents.Onthologies;
 import com.example.android.distributeurdeau.models.Farmer;
-import com.example.android.distributeurdeau.models.Onthologies;
 import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.gui.GuiAgent;
@@ -62,8 +62,8 @@ public class LoginAgent extends GuiAgent {
     public void onGuiEvent(GuiEvent guiEvent) {
         if(guiEvent.getType() == 1){
             ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
-            request.addUserDefinedParameter(Database.farmer_num, (String)guiEvent.getParameter(0).toString());
-            request.addUserDefinedParameter(Database.password, (String)guiEvent.getParameter(1).toString());
+            request.addUserDefinedParameter(Database.farmer_num, guiEvent.getParameter(0).toString());
+            request.addUserDefinedParameter(Database.password, guiEvent.getParameter(1).toString());
             request.addUserDefinedParameter(Database.is_farmer,String.valueOf(true));
             request.addReceiver(new AID(Database.manager,AID.ISLOCALNAME));
             request.setOntology(Onthologies.authentication);

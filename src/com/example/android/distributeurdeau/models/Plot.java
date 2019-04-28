@@ -22,6 +22,8 @@ public class Plot implements Serializable {
     public float Ym;
     public float Ky;
     public float dotation;
+    public Plot proposed;
+    public boolean isFarmerTurn;
 
     public Plot(Farmer farmer, String p_name, String type,Date s_date, float area, float water_qte) {
 
@@ -40,6 +42,8 @@ public class Plot implements Serializable {
         Ym = 2;
         Ky = 1.05f;
         dotation = 0;
+        isFarmerTurn = true;
+        proposed = null;
     }
 
     public Plot(Plot p) {
@@ -56,6 +60,8 @@ public class Plot implements Serializable {
         this.Ym = p.Ym;
         this.Ky = p.Ky;
         this.dotation = p.dotation;
+        proposed = p.proposed;
+        isFarmerTurn = p.isFarmerTurn;
     }
 
     public int getStatus() {

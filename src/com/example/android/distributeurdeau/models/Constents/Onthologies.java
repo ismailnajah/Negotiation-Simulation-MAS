@@ -1,4 +1,4 @@
-package com.example.android.distributeurdeau.models;
+package com.example.android.distributeurdeau.models.Constents;
 
 public class Onthologies {
     public static final String registration = "registration";
@@ -10,4 +10,5 @@ public class Onthologies {
     public static final String culture_data = "culture-data";
     public static final String propose_plot = "propose-plot";
     public static final String end_negotiation = "end-negotiation";
+    public static final String cancel_negotiation = "cancel-negotiation";
 }
