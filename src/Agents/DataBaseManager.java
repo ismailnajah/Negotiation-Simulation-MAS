@@ -43,21 +43,18 @@ public class DataBaseManager extends Agent {
                     msg = receive();
                     if (msg != null && connect != null) {
                         ACLMessage res = msg.createReply();
-                        Farmer farmer = null;
+                        Farmer farmer;
                         if (msg.getPerformative() == ACLMessage.REQUEST) {
                             switch (msg.getOntology()) {
                                 case (Onthologies.registration):
+
                                     // create new user account
-                                    res.setOntology(Onthologies.registration);
                                     farmer = (Farmer) msg.getContentObject();
-                                    if (addFarmer(farmer)) {
-                                        res.setPerformative(ACLMessage.FAILURE);
-                                    } else {
-                                        res.setPerformative(ACLMessage.CONFIRM);
-                                    }
+                                    res.setPerformative(addFarmer(farmer));
                                     break;
 
                                 case (Onthologies.authentication):
+
                                     String login = msg.getUserDefinedParameter(Database.farmer_num);
                                     String pass = msg.getUserDefinedParameter(Database.password);
                                     boolean isFarmer = Boolean.valueOf(msg.getUserDefinedParameter(Database.is_farmer));
@@ -65,52 +62,39 @@ public class DataBaseManager extends Agent {
                                     break;
 
                                 case (Onthologies.plot_modification):
-                                    res.setOntology(Onthologies.plot_modification);
+
                                     Plot plot = (Plot) msg.getContentObject();
-                                    if (EditPlot(plot))
-                                        res.setPerformative(ACLMessage.CONFIRM);
-                                    else
-                                        res.setPerformative(ACLMessage.FAILURE);
+                                    res.setPerformative(EditPlot(plot));
                                     break;
 
                                 case (Onthologies.plot_addition):
-                                    res.setOntology(Onthologies.plot_addition);
+
                                     plot = (Plot) msg.getContentObject();
-                                    if (addPlot(plot, Database.table_plots))
-                                        res.setPerformative(ACLMessage.CONFIRM);
-                                    else
-                                        res.setPerformative(ACLMessage.FAILURE);
+                                    res.setPerformative(addPlot(plot, Database.table_plots));
                                     break;
 
                                 case (Onthologies.plot_removing):
-                                    res.setOntology(Onthologies.plot_removing);
-                                    String pName = msg.getUserDefinedParameter(Database.p_name);
-                                    String farmerNum = msg.getUserDefinedParameter(Database.farmer_num);
-                                    if (removePlot(pName, farmerNum))
-                                        res.setPerformative(ACLMessage.CONFIRM);
-                                    else
-                                        res.setPerformative(ACLMessage.FAILURE);
+
+                                    Queries.p_name = msg.getUserDefinedParameter(Database.p_name);
+                                    Queries.farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
+                                    res.setPerformative(removePlot());
                                     break;
 
                                 case (Onthologies.plot_send):
-                                    res.setOntology(Onthologies.plot_send);
-                                    String p_name = msg.getUserDefinedParameter(Database.p_name);
-                                    String farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
+
+                                    Queries.p_name = msg.getUserDefinedParameter(Database.p_name);
+                                    Queries.farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
                                     float water_qte = Float.parseFloat(msg.getUserDefinedParameter(Database.water_qte));
-                                    if (sendPlot(p_name, farmer_num, water_qte))
-                                        res.setPerformative(ACLMessage.CONFIRM);
-                                    else
-                                        res.setPerformative(ACLMessage.FAILURE);
+                                    res.setPerformative(sendPlot(water_qte));
                                     break;
+
                                 case (Onthologies.culture_data):
-                                    res.setOntology(Onthologies.culture_data);
+
                                     Vector<CultureData> cultureData = getCultureData();
                                     res.setContentObject(cultureData);
-                                    if (cultureData.size() > 0)
-                                        res.setPerformative(ACLMessage.CONFIRM);
-                                    else
-                                        res.setPerformative(ACLMessage.FAILURE);
+                                    res.setPerformative(cultureData.size() > 0 ? ACLMessage.CONFIRM : ACLMessage.FAILURE);
                                     break;
+
                                 case (Onthologies.cancel_negotiation):
                                     Queries.p_name = msg.getUserDefinedParameter(Database.p_name);
                                     Queries.farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
@@ -119,16 +103,9 @@ public class DataBaseManager extends Agent {
 
                             }
                         } else if (msg.getPerformative() == ACLMessage.PROPOSE) {
-                            res.setOntology(Onthologies.propose_plot);
                             Plot proposedPlot = (Plot) msg.getContentObject();
-                            if (addPlot(proposedPlot, Database.table_proposed_plots))
-                                res.setPerformative(ACLMessage.CONFIRM);
-                            else
-                                res.setPerformative(ACLMessage.FAILURE);
-                        } else if (msg.getPerformative() == ACLMessage.REQUEST) {
-                            res.setOntology(Onthologies.end_negotiation);
-                            String p_name = msg.getUserDefinedParameter(Database.p_name);
-                            String farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
+                            res.setPerformative(addPlot(proposedPlot, Database.table_proposed_plots));
+
                         }
                         send(res);
                     }
@@ -195,27 +172,13 @@ public class DataBaseManager extends Agent {
     }
 
 
-    public boolean addFarmer(Farmer farmer){
-        String l_name = farmer.getL_name();
-        String f_name = farmer.getF_name();
-        String farmer_num = farmer.getFarmer_num();
-        String password = farmer.getPassword();
-
-        String query = "insert into "+ Database.table_farmers+ " values ('"+farmer_num+"','"+f_name+"','"+l_name+"','"+password+")";
-
+    public int addFarmer(Farmer farmer) {
+        final String query = Queries.AddFarmer(farmer);
         return executeUpdate(query);
     }
 
-    public boolean EditPlot(Plot plot) {
-        final String date = tool(plot.getS_date().toString());
-        final String newPlotValues = Database.type + tool(plot.getType())
-                                    +" , "+Database.area+"="+plot.getArea()
-                                    +" , "+Database.water_qte+"="+plot.getWater_qte()
-                                    +" , "+Database.sowing_date+date;
-        final String query = "update "+Database.table_plots+" set " +newPlotValues+
-                            " where "+ Database.p_name+tool(plot.getP_name())
-                            +" and " + Database.farmer_num+tool(plot.getFarmer().getFarmer_num());
-
+    public int EditPlot(Plot plot) {
+        final String query = Queries.EditPlot(plot);
         return executeUpdate(query);
     }
 
@@ -267,36 +230,22 @@ public class DataBaseManager extends Agent {
 
     }
 
-    private boolean addPlot(Plot plot, String tableName) {
-        final String p_name = tol(plot.getP_name());
-        final String farmer_num = tol(plot.getFarmer().getFarmer_num());
-        final String type = tol(plot.getType());
-        final float area = plot.getArea();
-        final String date = tol(plot.getS_date().toString());
-        final float water_qte = plot.getWater_qte();
-        final String c = ",";
-
-        String query = "INSERT into " + tableName + " VALUES (" + p_name + c + farmer_num + c + type + c +
-                                            area + c + date + c + water_qte + c + plot.getET0() +
-                                        c + plot.getPLUIE() + c + plot.getKc() + c + plot.getYm() + c + plot.getKy() + c +
-                "default,default)";
+    private int addPlot(Plot plot, String tableName) {
+        final String query = Queries.AddPlot(plot, tableName);
         return executeUpdate(query);
     }
 
-    private boolean removePlot(String p_name,String farmer_num) {
-        String query = "DELETE FROM "+Database.table_plots+" WHERE "+ Database.p_name + tool(p_name) + " and "
-                + Database.farmer_num + tool(farmer_num);
+    private int removePlot() {
+        String query = Queries.DeletePlot();
         return executeUpdate(query);
     }
 
-    private boolean sendPlot(String p_name, String farmer_num, float water_qte) {
-        String query = "UPDATE " + Database.table_plots + " SET " + Database.plotStatus + " = 1," +
-                Database.water_qte + " = " + water_qte + " WHERE " +
-                Database.farmer_num + tool(farmer_num) + " AND " + Database.p_name + tool(p_name);
+    private int sendPlot(float water_qte) {
+        String query = Queries.SendPlot(water_qte);
         return executeUpdate(query);
     }
 
-    private boolean updateStatus(int status) {
+    private int updateStatus(int status) {
         String query = Queries.UpdatePlotStatus(status);
         return executeUpdate(query);
     }
@@ -397,10 +346,7 @@ public class DataBaseManager extends Agent {
 
     private int CancelNegotiation() {
         String query = Queries.DeleteProposedPlot();
-        if (executeUpdate(query) && updateStatus(0))
-            return ACLMessage.CONFIRM;
-        else
-            return ACLMessage.FAILURE;
+        return executeUpdate(query) * updateStatus(0);
     }
 
     private Date DateFromMonth(String string) {
@@ -408,13 +354,13 @@ public class DataBaseManager extends Agent {
         return Date.valueOf(date);
     }
 
-    private boolean executeUpdate(String query){
-        boolean status;
+    private int executeUpdate(String query) {
+        int status;
         try {
             connect.prepareStatement(query).executeUpdate();
-            status = true;
+            status = ACLMessage.CONFIRM;
         } catch (SQLException e) {
-            status = false;
+            status = ACLMessage.FAILURE;
             e.printStackTrace();
         }
         return status;
@@ -424,6 +370,5 @@ public class DataBaseManager extends Agent {
         return "='"+value+"'";
     }
 
-    private String tol(String value){ return "'"+value+"'";}
 
 }
