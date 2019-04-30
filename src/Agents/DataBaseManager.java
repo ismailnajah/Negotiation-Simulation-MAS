@@ -346,7 +346,12 @@ public class DataBaseManager extends Agent {
 
     private int CancelNegotiation() {
         String query = Queries.DeleteProposedPlot();
-        return executeUpdate(query) * updateStatus(0);
+        int per1 = executeUpdate(query);
+        int per2 = updateStatus(0);
+        if (per1 == per2)
+            return per1;
+        else
+            return ACLMessage.FAILURE;
     }
 
     private Date DateFromMonth(String string) {
