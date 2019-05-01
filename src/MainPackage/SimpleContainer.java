@@ -1,6 +1,7 @@
 package MainPackage;
 
 import Agents.DataBaseManager;
+import Agents.SupervisorAgent;
 import com.example.android.distributeurdeau.models.Constents.Database;
 import jade.core.ProfileImpl;
 import jade.core.Runtime;
@@ -15,12 +16,18 @@ public class SimpleContainer {
             ProfileImpl profile = new ProfileImpl(false);
             profile.setParameter(ProfileImpl.MAIN_HOST, "localhost");
             AgentContainer agentContainer = runtime.createAgentContainer(profile);
-            AgentController agentController = agentContainer.createNewAgent(
+            AgentController agentControllerDBA = agentContainer.createNewAgent(
                     Database.manager,
                     DataBaseManager.class.getName(),
                     null
             );
-            agentController.start();
+            AgentController agentControllerSupervisor = agentContainer.createNewAgent(
+                    Database.Supervisor,
+                    SupervisorAgent.class.getName(),
+                    null
+            );
+            agentControllerDBA.start();
+            agentControllerSupervisor.start();
         } catch (ControllerException e) {
             e.printStackTrace();
         }

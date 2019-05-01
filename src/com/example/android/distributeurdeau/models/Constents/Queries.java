@@ -3,6 +3,11 @@ package com.example.android.distributeurdeau.models.Constents;
 import com.example.android.distributeurdeau.models.Farmer;
 import com.example.android.distributeurdeau.models.Plot;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+
 public class Queries {
 
     public static String AddFarmer(Farmer farmer) {
@@ -43,22 +48,39 @@ public class Queries {
         return "update " + Database.table_plots + " set " + newPlotValues +
                 " where " + Database.p_name + tool(plot.getP_name())
                 + " and " + Database.farmer_num + tool(plot.getFarmer().getFarmer_num());
+
     }
 
+    public static PreparedStatement AddPlot(Plot plot, String tableName, Connection connection) throws SQLException {
 
-    public static String AddPlot(Plot plot, String tableName) {
-        final String p_name2 = tol(plot.getP_name());
-        final String farmer_num2 = tol(plot.getFarmer().getFarmer_num());
-        final String type = tol(plot.getType());
-        final float area = plot.getArea();
-        final String date = tol(plot.getS_date().toString());
-        final float water_qte = plot.getWater_qte();
-        final String c = ",";
+        String query = "INSERT INTO " + tableName + " (" + Database.p_name + ", " + Database.farmer_num + "," + Database.type +
+                "," + Database.area + "," + Database.sowing_date + "," + Database.water_qte + "," + Database.ET0 + "," + Database.PLUIE +
+                "," + Database.Kc + "," + Database.Ym + "," + Database.Ky + ", `dotation`, `status`, `modified`) " +
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
 
-        return "INSERT into " + tableName + " VALUES (" + p_name2 + c + farmer_num2 + c + type + c +
-                area + c + date + c + water_qte + c + plot.getET0() +
-                c + plot.getPLUIE() + c + plot.getKc() + c + plot.getYm() + c + plot.getKy() + c +
-                "default,default)";
+        PreparedStatement preparedStatement = connection.prepareStatement(query);
+
+        preparedStatement.setString(1, plot.getP_name());
+        preparedStatement.setString(2, plot.getFarmer().getFarmer_num());
+        preparedStatement.setString(3, plot.getType());
+        preparedStatement.setFloat(4, plot.getArea());
+        preparedStatement.setDate(5, plot.getS_date());
+        preparedStatement.setFloat(6, plot.getWater_qte());
+        preparedStatement.setFloat(7, plot.ET0);
+        preparedStatement.setFloat(8, plot.PLUIE);
+        preparedStatement.setFloat(9, plot.Kc);
+        preparedStatement.setFloat(10, plot.Ym);
+        preparedStatement.setFloat(11, plot.Ky);
+        preparedStatement.setFloat(12, plot.dotation);
+        preparedStatement.setInt(13, plot.getStatus());
+        preparedStatement.setTimestamp(14, getCurrentTimeStamp());
+
+        return preparedStatement;
+    }
+
+    public static String getPlot(String p_name, String farmer_num) {
+        return "SELECT * FROM " + Database.table_plots + " WHERE " + Database.p_name + tool(p_name) + " AND " +
+                Database.farmer_num + tool(farmer_num);
     }
 
     public static String getPlot(String p_name, String farmer_num) {
@@ -70,8 +92,15 @@ public class Queries {
         return "='" + value + "'";
     }
 
-    private static String tol(String value) {
-        return "'" + value + "'";
+    public static String getFarmer(String farmer_num) {
+        return "SELECT * FROM " + Database.table_farmers + " WHERE " + Database.farmer_num + tool(farmer_num);
+    }
+
+    private static Timestamp getCurrentTimeStamp() {
+
+        java.util.Date today = new java.util.Date();
+        return new Timestamp(today.getTime());
+
     }
 
     public static String getFarmer(String farmer_num) {
