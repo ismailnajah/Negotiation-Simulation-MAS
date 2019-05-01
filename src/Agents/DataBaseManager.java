@@ -23,6 +23,7 @@ public class DataBaseManager extends Agent {
     Statement statement = null;
     ResultSet resultSet = null;
     ACLMessage msg;
+    boolean error = false;
     @Override
     protected void setup() {
         addBehaviour(new OneShotBehaviour() {
@@ -127,7 +128,10 @@ public class DataBaseManager extends Agent {
                                     Plot acceptedPlot = AcceptProposal(p_name, farmer_num);
                                     res.setContentObject(acceptedPlot);
                                     res.addUserDefinedParameter(Database.p_name, p_name);
-                                    res.setPerformative(ACLMessage.CONFIRM);
+                                    if (!error)
+                                        res.setPerformative(ACLMessage.CONFIRM);
+                                    else
+                                        res.setPerformative(ACLMessage.FAILURE);
                                 }
                                 break;
 
@@ -157,6 +161,7 @@ public class DataBaseManager extends Agent {
 
         if (p1 == ACLMessage.CONFIRM && p2 == ACLMessage.CONFIRM && p3 == ACLMessage.CONFIRM)
             return plot;
+        error = true;
         return null;
 
     }
