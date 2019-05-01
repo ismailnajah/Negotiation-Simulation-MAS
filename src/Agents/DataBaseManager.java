@@ -7,6 +7,7 @@ import com.example.android.distributeurdeau.models.CultureData;
 import com.example.android.distributeurdeau.models.Farmer;
 import com.example.android.distributeurdeau.models.Plot;
 import com.example.android.distributeurdeau.models.Supervisor;
+import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
@@ -44,8 +45,12 @@ public class DataBaseManager extends Agent {
                     if (msg != null && connect != null) {
                         ACLMessage res = msg.createReply();
                         Farmer farmer;
-                        if (msg.getPerformative() == ACLMessage.REQUEST) {
-                            switch (msg.getOntology()) {
+                        String p_name;
+                        String farmer_num;
+
+                        switch (msg.getPerformative()) {
+                            case ACLMessage.REQUEST:
+                                switch (msg.getOntology()) {
                                 case (Onthologies.registration):
 
                                     // create new user account
@@ -75,17 +80,17 @@ public class DataBaseManager extends Agent {
 
                                 case (Onthologies.plot_removing):
 
-                                    Queries.p_name = msg.getUserDefinedParameter(Database.p_name);
-                                    Queries.farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
-                                    res.setPerformative(removePlot());
+                                    p_name = msg.getUserDefinedParameter(Database.p_name);
+                                    farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
+                                    res.setPerformative(removePlot(Database.table_plots, p_name, farmer_num));
                                     break;
 
                                 case (Onthologies.plot_send):
 
-                                    Queries.p_name = msg.getUserDefinedParameter(Database.p_name);
-                                    Queries.farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
+                                    p_name = msg.getUserDefinedParameter(Database.p_name);
+                                    farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
                                     float water_qte = Float.parseFloat(msg.getUserDefinedParameter(Database.water_qte));
-                                    res.setPerformative(sendPlot(water_qte));
+                                    res.setPerformative(sendPlot(p_name, farmer_num, water_qte));
                                     break;
 
                                 case (Onthologies.culture_data):
@@ -96,16 +101,38 @@ public class DataBaseManager extends Agent {
                                     break;
 
                                 case (Onthologies.cancel_negotiation):
-                                    Queries.p_name = msg.getUserDefinedParameter(Database.p_name);
-                                    Queries.farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
-                                    res.setPerformative(CancelNegotiation());
+                                    p_name = msg.getUserDefinedParameter(Database.p_name);
+                                    farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
+                                    res.setPerformative(CancelNegotiation(p_name, farmer_num));
                                     break;
 
-                            }
-                        } else if (msg.getPerformative() == ACLMessage.PROPOSE) {
-                            Plot proposedPlot = (Plot) msg.getContentObject();
-                            res.setPerformative(addPlot(proposedPlot, Database.table_proposed_plots));
+                                    default:
+                                        throw new IllegalStateException("Unexpected value: " + msg.getOntology());
+                                }
+                                break;
 
+                            case ACLMessage.PROPOSE:
+                                Plot proposedPlot = (Plot) msg.getContentObject();
+                                int performative = addPlot(proposedPlot, Database.table_proposed_plots);
+                                if (performative == ACLMessage.CONFIRM) {
+                                    SendNotification(proposedPlot);
+                                }
+                                res.setPerformative(performative);
+                                break;
+
+                            case ACLMessage.INFORM:
+                                if (msg.getOntology().equals(Onthologies.ACCEPT_PLAN)) {
+                                    p_name = msg.getUserDefinedParameter(Database.p_name);
+                                    farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
+                                    Plot acceptedPlot = AcceptProposal(p_name, farmer_num);
+                                    res.setContentObject(acceptedPlot);
+                                    res.addUserDefinedParameter(Database.p_name, p_name);
+                                    res.setPerformative(ACLMessage.CONFIRM);
+                                }
+                                break;
+
+                            default:
+                                throw new IllegalStateException("Unexpected value: " + msg.getPerformative());
                         }
                         send(res);
                     }
@@ -114,6 +141,38 @@ public class DataBaseManager extends Agent {
                 }
             }
         });
+    }
+
+    private Plot AcceptProposal(String p_name, String farmer_num) {
+        Farmer farmer = new Farmer(farmer_num, "", "", "");
+        Plot plot = getProposedPlot(p_name, farmer);
+        int p1 = ACLMessage.CONFIRM;
+        int p2 = updateStatus(p_name, farmer_num, 2);
+        int p3 = ACLMessage.CONFIRM;
+
+        if (plot != null) {
+            p3 = removePlot(Database.table_proposed_plots, p_name, farmer_num);
+            p1 = EditPlot(plot);
+        }
+
+        if (p1 == ACLMessage.CONFIRM && p2 == ACLMessage.CONFIRM && p3 == ACLMessage.CONFIRM)
+            return plot;
+        return null;
+
+    }
+
+    private void SendNotification(Plot proposedPlot) {
+        ACLMessage notify = new ACLMessage(ACLMessage.INFORM);
+        notify.addReceiver(new AID(Onthologies.FARMER_PREFIX + proposedPlot.getFarmer().getFarmer_num()
+                , AID.ISLOCALNAME));
+        notify.setOntology(Onthologies.NOTIFY);
+        try {
+            notify.setContentObject(proposedPlot);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        send(notify);
+
     }
 
     public Farmer getFarmer(String farmer_num, String password){
@@ -235,18 +294,18 @@ public class DataBaseManager extends Agent {
         return executeUpdate(query);
     }
 
-    private int removePlot() {
-        String query = Queries.DeletePlot();
+    private int removePlot(String table, String p_name, String farmer_num) {
+        String query = Queries.DeletePlot(table, p_name, farmer_num);
         return executeUpdate(query);
     }
 
-    private int sendPlot(float water_qte) {
-        String query = Queries.SendPlot(water_qte);
+    private int sendPlot(String p_name, String farmer_num, float water_qte) {
+        String query = Queries.SendPlot(p_name, farmer_num, water_qte);
         return executeUpdate(query);
     }
 
-    private int updateStatus(int status) {
-        String query = Queries.UpdatePlotStatus(status);
+    private int updateStatus(String p_name, String farmer_num, int status) {
+        String query = Queries.UpdatePlotStatus(p_name, farmer_num, status);
         return executeUpdate(query);
     }
 
@@ -344,10 +403,10 @@ public class DataBaseManager extends Agent {
         return culture_data;
     }
 
-    private int CancelNegotiation() {
-        String query = Queries.DeleteProposedPlot();
+    private int CancelNegotiation(String p_name, String farmer_num) {
+        String query = Queries.DeleteProposedPlot(p_name, farmer_num);
         int per1 = executeUpdate(query);
-        int per2 = updateStatus(0);
+        int per2 = updateStatus(p_name, farmer_num, 0);
         if (per1 == per2)
             return per1;
         else
