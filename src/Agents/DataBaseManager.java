@@ -92,6 +92,7 @@ public class DataBaseManager extends Agent {
                                     farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
                                     float water_qte = Float.parseFloat(msg.getUserDefinedParameter(Database.water_qte));
                                     res.setPerformative(sendPlot(p_name, farmer_num, water_qte));
+                                    NotifySupervisor(p_name, farmer_num, true);
                                     break;
 
                                 case (Onthologies.culture_data):
@@ -99,12 +100,14 @@ public class DataBaseManager extends Agent {
                                     Vector<CultureData> cultureData = getCultureData();
                                     res.setContentObject(cultureData);
                                     res.setPerformative(cultureData.size() > 0 ? ACLMessage.CONFIRM : ACLMessage.FAILURE);
+
                                     break;
 
                                 case (Onthologies.cancel_negotiation):
                                     p_name = msg.getUserDefinedParameter(Database.p_name);
                                     farmer_num = msg.getUserDefinedParameter(Database.farmer_num);
                                     res.setPerformative(CancelNegotiation(p_name, farmer_num));
+                                    NotifySupervisor(p_name, farmer_num, false);
                                     break;
 
                                     default:
@@ -132,6 +135,14 @@ public class DataBaseManager extends Agent {
                                         res.setPerformative(ACLMessage.CONFIRM);
                                     else
                                         res.setPerformative(ACLMessage.FAILURE);
+                                } else if (msg.getOntology().equals(Onthologies.REFUSE_PLAN)) {
+                                    Plot plot = (Plot) msg.getContentObject();
+                                    res.setContentObject(plot);
+                                    if (refusePlot(plot))
+                                        res.setPerformative(ACLMessage.CONFIRM);
+                                    else
+                                        res.setPerformative(ACLMessage.FAILURE);
+
                                 }
                                 break;
 
@@ -145,6 +156,79 @@ public class DataBaseManager extends Agent {
                 }
             }
         });
+    }
+
+    private void NotifySupervisor(String p_name, String farmer_num, boolean isSent) {
+        Plot plot = getPlot(p_name, farmer_num);
+        ACLMessage notify = new ACLMessage(ACLMessage.INFORM);
+        notify.setOntology(Onthologies.NOTIFY);
+        notify.addUserDefinedParameter(Onthologies.NOTIFY, String.valueOf(isSent));
+        notify.addReceiver(new AID(Onthologies.SUPERVISOR_PREFIX + "1", AID.ISLOCALNAME));
+        try {
+            notify.setContentObject(plot);
+            send(notify);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Plot getPlot(String p_name, String farmer_num) {
+        String query = Queries.getPlot(p_name, farmer_num);
+        Plot plot = null;
+        try {
+            Statement statement = connect.createStatement();
+            ResultSet result = statement.executeQuery(query);
+            if (result.next()) {
+                Farmer farmer = getFarmerObject(farmer_num);
+                float area = result.getFloat(Database.area);
+                float water_qte = result.getFloat(Database.water_qte);
+                Date s_date = result.getDate(Database.sowing_date);
+                String type = result.getString(Database.type);
+
+                plot = new Plot(farmer, p_name, type, s_date, area, water_qte);
+                plot.setStatus(result.getInt(Database.plotStatus));
+                plot.setET0(result.getFloat(Database.ET0));
+                plot.setPLUIE(result.getFloat(Database.PLUIE));
+                plot.setKc(result.getFloat(Database.Kc));
+                plot.setYm(result.getFloat(Database.Ym));
+                plot.setKy(result.getFloat(Database.Ky));
+                plot.setDotation(result.getFloat(Database.dotation));
+                plot.proposed = getProposedPlot(p_name, farmer);
+                plot.isFarmerTurn = false;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return plot;
+    }
+
+    private Farmer getFarmerObject(String farmer_num) {
+        String query = Queries.getFarmer(farmer_num);
+        Farmer farmer = null;
+        try {
+            statement = connect.createStatement();
+            resultSet = statement.executeQuery(query);
+            if (resultSet.next()) {
+                String l_name = resultSet.getString(Database.l_name);
+                String f_name = resultSet.getString(Database.f_name);
+                String password = resultSet.getString(Database.password);
+                farmer = new Farmer(farmer_num, f_name, l_name, password);
+                farmer.setPlots(getFarmerPlots(farmer, ""));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return farmer;
+    }
+
+    private boolean refusePlot(Plot plot) {
+        int p1 = EditPlot(plot);
+        int p2 = removePlot(Database.table_proposed_plots, plot.getP_name(),
+                plot.getFarmer().getFarmer_num());
+        int p3 = updateStatus(plot.getP_name(), plot.getFarmer().getFarmer_num(), 2);
+
+        return p1 == ACLMessage.CONFIRM && p2 == ACLMessage.CONFIRM && p3 == ACLMessage.CONFIRM;
     }
 
     private Plot AcceptProposal(String p_name, String farmer_num) {

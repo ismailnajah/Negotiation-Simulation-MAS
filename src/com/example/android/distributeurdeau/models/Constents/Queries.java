@@ -61,11 +61,20 @@ public class Queries {
                 "default,default)";
     }
 
+    public static String getPlot(String p_name, String farmer_num) {
+        return "SELECT * FROM " + Database.table_plots + " WHERE " + Database.p_name + tool(p_name) + " AND " +
+                Database.farmer_num + tool(farmer_num);
+    }
+
     private static String tool(String value) {
         return "='" + value + "'";
     }
 
     private static String tol(String value) {
         return "'" + value + "'";
+    }
+
+    public static String getFarmer(String farmer_num) {
+        return "SELECT * FROM " + Database.table_farmers + " WHERE " + Database.farmer_num + tool(farmer_num);
     }
 }
