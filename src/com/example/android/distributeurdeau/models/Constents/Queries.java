@@ -78,10 +78,6 @@ public class Queries {
         return preparedStatement;
     }
 
-    public static String getPlot(String p_name, String farmer_num) {
-        return "SELECT * FROM " + Database.table_plots + " WHERE " + Database.p_name + tool(p_name) + " AND " +
-                Database.farmer_num + tool(farmer_num);
-    }
 
     public static String getPlot(String p_name, String farmer_num) {
         return "SELECT * FROM " + Database.table_plots + " WHERE " + Database.p_name + tool(p_name) + " AND " +
@@ -90,10 +86,6 @@ public class Queries {
 
     private static String tool(String value) {
         return "='" + value + "'";
-    }
-
-    public static String getFarmer(String farmer_num) {
-        return "SELECT * FROM " + Database.table_farmers + " WHERE " + Database.farmer_num + tool(farmer_num);
     }
 
     private static Timestamp getCurrentTimeStamp() {

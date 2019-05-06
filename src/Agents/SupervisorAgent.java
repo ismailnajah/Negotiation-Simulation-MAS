@@ -13,6 +13,7 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.UnreadableException;
 
 import java.io.IOException;
+import java.sql.Date;
 import java.util.Vector;
 
 public class SupervisorAgent extends Agent {
@@ -38,7 +39,10 @@ public class SupervisorAgent extends Agent {
             if (besoin > dotation) {
                 plot = tweek(plot);
             } else {
-                accept(plot.getP_name(), plot.getFarmer().getFarmer_num());
+                if (adjustSowingDate(plot))
+                    proposePlot(plot);
+                else
+                    accept(plot.getP_name(), plot.getFarmer().getFarmer_num());
                 return;
             }
         } else if (besoin > estimated) {
@@ -59,8 +63,31 @@ public class SupervisorAgent extends Agent {
                 }
             }
         }
-
+        adjustSowingDate(plot);
         proposePlot(plot);
+    }
+
+    private boolean adjustSowingDate(Plot plot) {
+        CultureData data = null;
+        Date s_date = plot.getS_date();
+
+        for (CultureData c : cultureData) {
+            if (c.getName().equals(plot.getType())) {
+                data = c;
+                break;
+            }
+        }
+        if (data != null) {
+            Date start = data.getStart_s_date();
+            Date end = data.getEnd_s_date();
+            start.setYear(s_date.getYear());
+            end.setYear(s_date.getYear());
+            if (s_date.before(start) || s_date.after(end)) {
+                plot.setS_date(start);
+                return true;
+            }
+        }
+        return false;
     }
 
     private Plot tweek(Plot plot) {
@@ -99,8 +126,7 @@ public class SupervisorAgent extends Agent {
 
     private void notifyFarmer(String p_name, String farmer_num) {
         ACLMessage notify = new ACLMessage(ACLMessage.CONFIRM);
-        notify.addReceiver(new AID(Onthologies.FARMER_PREFIX + farmer_num
-                , AID.ISLOCALNAME));
+        notify.addReceiver(new AID(Onthologies.FARMER_PREFIX + farmer_num, AID.ISLOCALNAME));
         notify.setOntology(Onthologies.ACCEPT_PLAN);
         notify.addUserDefinedParameter(Database.p_name, p_name);
         send(notify);
