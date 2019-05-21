@@ -9,7 +9,7 @@ import jade.wrapper.AgentContainer;
 import jade.wrapper.AgentController;
 import jade.wrapper.ControllerException;
 
-public class SimpleContainer {
+public class Container {
     public static void main(String[] args) {
         try {
             Runtime runtime = Runtime.instance();

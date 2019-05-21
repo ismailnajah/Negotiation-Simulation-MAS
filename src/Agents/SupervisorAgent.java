@@ -97,7 +97,6 @@ public class SupervisorAgent extends Agent {
         proposedPlot = new Plot(plot);
         proposedPlot.setArea(newArea);
         proposedPlot.setWater_qte(plot.getDotation());
-        // TODO : Date de semi
         return proposedPlot;
     }
 
