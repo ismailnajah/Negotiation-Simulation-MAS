@@ -84,6 +84,7 @@ public class Queries {
                 Database.farmer_num + tool(farmer_num);
     }
 
+
     private static String tool(String value) {
         return "='" + value + "'";
     }

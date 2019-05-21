@@ -20,6 +20,8 @@ import java.util.Vector;
 public class DataBaseManager extends Agent {
     private ACLMessage msg;
     private boolean error = false;
+
+
     @Override
     protected void setup() {
 
