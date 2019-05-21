@@ -16,7 +16,7 @@ public class Onthologies {
     public static final String SUPERVISOR_PREFIX = "Supervisor - ";
     public static final String NOTIFY = "notify";
     public static final String ACCEPT_PLAN = "accept-plan";
-    public static final String REFUSE_PLAN = "refuse_plan";
+    public static final String REFUSE_PLAN = "refuse-plan";
     public static final String SET_DOTATION = "set-dotation";
     public static final String START_NEGOTIATION = "start-negotiation";
 }

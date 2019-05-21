@@ -129,13 +129,13 @@ public class DataBaseManager extends Agent {
                                         res.setPerformative(ACLMessage.FAILURE);
                                 } else if (msg.getOntology().equals(Onthologies.REFUSE_PLAN)) {
                                     Plot plot = (Plot) msg.getContentObject();
-                                    NotifySupervisor(plot.getP_name(), plot.getFarmer().getFarmer_num(), 2);
+                                    NotifySupervisor(plot, 2);
                                     res.setContentObject(plot);
-                                    if (refusePlot(plot))
+                                    if (refusePlot(plot)) {
                                         res.setPerformative(ACLMessage.CONFIRM);
-                                    else
+                                    } else {
                                         res.setPerformative(ACLMessage.FAILURE);
-
+                                    }
                                 }
                                 break;
 
@@ -149,6 +149,7 @@ public class DataBaseManager extends Agent {
             }
         });
     }
+
 
     private int affectDotation(String p_name, String farmer_num, float dotation) {
         String query = "UPDATE " + Database.table_plots + " set " + Database.dotation + " =? " +
@@ -185,6 +186,19 @@ public class DataBaseManager extends Agent {
 
     private void NotifySupervisor(String p_name, String farmer_num, int state) {
         Plot plot = getPlot(p_name, farmer_num);
+        ACLMessage notify = new ACLMessage(ACLMessage.INFORM);
+        notify.setOntology(Onthologies.NOTIFY);
+        notify.addUserDefinedParameter(Onthologies.NOTIFY, String.valueOf(state));
+        notify.addReceiver(new AID(Onthologies.SUPERVISOR_PREFIX + "1", AID.ISLOCALNAME));
+        try {
+            notify.setContentObject(plot);
+            send(notify);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void NotifySupervisor(Plot plot, int state) {
         ACLMessage notify = new ACLMessage(ACLMessage.INFORM);
         notify.setOntology(Onthologies.NOTIFY);
         notify.addUserDefinedParameter(Onthologies.NOTIFY, String.valueOf(state));
