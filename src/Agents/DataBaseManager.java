@@ -162,6 +162,9 @@ public class DataBaseManager extends Agent {
             preparedStatement.setString(3, farmer_num);
             preparedStatement.executeUpdate();
             startNegotiation(p_name, farmer_num);
+
+            preparedStatement.close();
+            connection.close();
             return ACLMessage.CONFIRM;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -236,6 +239,8 @@ public class DataBaseManager extends Agent {
                 plot.proposed = getProposedPlot(p_name, farmer);
                 plot.isFarmerTurn = false;
             }
+            statement.close();
+            connect.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -257,6 +262,8 @@ public class DataBaseManager extends Agent {
                 farmer = new Farmer(farmer_num, f_name, l_name, password);
                 farmer.setPlots(getFarmerPlots(farmer, ""));
             }
+            statement.close();
+            connect.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -320,6 +327,8 @@ public class DataBaseManager extends Agent {
                     farmer.setPlots(getFarmerPlots(farmer,""));
                 }
             }
+            statement.close();
+            connect.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -354,6 +363,8 @@ public class DataBaseManager extends Agent {
                 plot.proposed = getProposedPlot(p_name, farmer);
                 plots.addElement(plot);
             }
+            statement.close();
+            connect.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -396,7 +407,8 @@ public class DataBaseManager extends Agent {
                 plot.proposed = null;
                 plot.isFarmerTurn = true;
             }
-
+            statement.close();
+            connect.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -409,7 +421,8 @@ public class DataBaseManager extends Agent {
             Connection connection = DriverManager.getConnection(Database.url);
             final PreparedStatement preparedStatement = Queries.AddPlot(plot, tableName, connection);
             preparedStatement.executeUpdate();
-
+            preparedStatement.close();
+            connection.close();
             return ACLMessage.CONFIRM;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -475,6 +488,8 @@ public class DataBaseManager extends Agent {
                     supervisor.setFarmers(getSupervisorFarmers());
                 }
             }
+            statement.close();
+            connect.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -499,6 +514,8 @@ public class DataBaseManager extends Agent {
             for(Farmer f : farmes){
                 f.setPlots(getFarmerPlots(f,sentOnly));
             }
+            statement.close();
+            connect.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -522,6 +539,8 @@ public class DataBaseManager extends Agent {
                 float fixed_price = resultSet.getFloat(Database.fixed_price);
                 culture_data.addElement(new CultureData(name, start, end, price, variable_price, fixed_price));
             }
+            statement.close();
+            connect.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -550,6 +569,7 @@ public class DataBaseManager extends Agent {
             Connection connect = DriverManager.getConnection(Database.url);
             connect.prepareStatement(query).executeUpdate();
             status = ACLMessage.CONFIRM;
+            connect.close();
         } catch (SQLException e) {
             status = ACLMessage.FAILURE;
             e.printStackTrace();
